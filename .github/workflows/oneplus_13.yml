@@ -71,10 +71,8 @@ jobs:
       - name: Set up KernelSU
         run: |
           cd kernel_workspace/kernel_platform
+          # 使用 KernelSU 官方脚本集成到内核源码
           curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-          cd kernelSU
-          echo "KSUVER=$(git rev-parse --short=8 HEAD)" >> $GITHUB_ENV
-          cd ..
 
       - name: Set up susfs
         run: |
