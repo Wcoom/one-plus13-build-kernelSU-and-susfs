@@ -83,10 +83,11 @@ jobs:
           rm -f kernel_platform/common/android/abi_gki_protected_exports_*
           rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_*
       
-      - name: Setup KernelSU (v0.9.2)
+      - name: Set up KernelSU
         run: |
           cd kernel_workspace/kernel_platform
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/v0.9.2/kernel/setup.sh" | bash -s v0.9.2
+          # 使用 KernelSU 官方脚本集成到内核源码
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
       
       - name: Prepare SUSFS integration
         run: |
