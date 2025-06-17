@@ -124,6 +124,28 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
           grep -E "CONFIG_KSU_SUSFS" ./common/arch/arm64/configs/gki_defconfig
+          # 生成补丁影响文件列表
+          find ./common -type f -exec grep -l "susfs" {} + | sort | uniq
+
+          # 验证每个文件是否包含关键函数
+          check_files=(
+          fs/namespace.c
+          fs/namei.c
+          fs/exec.c
+          include/linux/sched.h
+          kernel/sys.c
+          fs/dcache.c
+          )
+
+          for file in "${check_files[@]}"; do
+          echo -e "\n\e[1;34m验证 $file:\e[0m"
+          if grep -q "susfs" "./common/$file"; then
+           echo -e "\e[1;32m✓ SUSFS 代码存在\e[0m"
+           grep -n --color "susfs" "./common/$file" | head -3
+          else
+          echo -e "\e[1;31m✗ 未找到 SUSFS 代码\e[0m"
+          fi
+          done
           #echo "CONFIG_CRYPTO_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_CRYPTO_LZ4K=y" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
