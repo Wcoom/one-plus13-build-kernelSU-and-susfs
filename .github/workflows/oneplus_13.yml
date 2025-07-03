@@ -47,8 +47,8 @@ jobs:
         run: |
           # 如果 adios repo 中没有顶层 Makefile，则创建一个
           cat > kernel_workspace/kernel_platform/modules/adios/Makefile << 'EOF'
-obj-m += adios.o
-EOF
+          obj-m += adios.o
+          EOF
 
       - name: 编译 adios.ko
         run: |
@@ -60,7 +60,7 @@ EOF
                modules
 
       - name: 收集并上传 adios.ko
-        run: |
+         run:|
           cp kernel_workspace/kernel_platform/modules/adios/adios.ko .
         uses: actions/upload-artifact@v4
         with:
