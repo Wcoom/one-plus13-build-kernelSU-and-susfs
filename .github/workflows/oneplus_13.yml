@@ -1,219 +1,50 @@
-name: oneplus_13
+name: build_adios_ko
 
 on:
   workflow_dispatch:
-    inputs:
-      KERNEL_SUFFIX:
-        description: '内核名称修改(可改中文和emoji)'
-        required: true
-        default: '-android15-8-g013ec21bba94-abogki383916444-4k'
-      KERNEL_TIME:
-        description: "内核构建日期更改(默认为原厂)"
-        required: true
-        default: 'Tue Dec 17 23:36:49 UTC 2024'
-      enable_feature_z:
-        description: "是否添加风驰驱动"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
-  build:
+  build-adios:
     runs-on: ubuntu-latest
-    env:
-      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
-      CCACHE_NOHASHDIR: "true"
-      CCACHE_HARDLINK: "true"
-      CCACHE_DIR: /home/runner/.ccache
-      CCACHE_MAXSIZE: 8G
+
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 8192
-          temp-reserve-mb: 2048
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-      - name: Configure Git
-        run: |
-          git config --global user.name "Futaba"
-          git config --global user.email "3199167602@qq.com"
       - name: Install dependencies
         run: |
-          sudo apt update && sudo apt upgrade -y
-          sudo apt install -y python3 git curl ccache libelf-dev
-      - name: Clear ccache
-        run: |
-          ccache -C
-          ccache --zero-stats
-      - name: Restore ccache
-        uses: actions/cache@v3
+          sudo apt update
+          sudo apt install -y git build-essential bc bison flex libssl-dev \
+            libelf-dev ccache python3 curl wget lld clang llvm
+
+      - name: Checkout adios module
+        uses: actions/checkout@v4
         with:
-          path: /home/runner/.ccache
-          key: ccache-${{ runner.os }}-${{ github.ref }}
-          restore-keys: |
-            ccache-${{ runner.os }}-
-      - name: Install repo tool
-        run: |
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
-          chmod a+x ~/repo
-          sudo mv ~/repo /usr/local/bin/repo
-      - name: Initialize repo and sync
-        run: |
-          mkdir kernel_workspace && cd kernel_workspace
-          repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m JiuGeFaCai_oneplus_13_v.xml --depth=1
-          repo --trace sync -c -j$(nproc --all) --no-tags
-          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-      - name: Set up KernelSU
-        run: |
-          cd kernel_workspace/kernel_platform
-          # 使用 KernelSU 官方脚本集成到内核源码
-          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
-      - name: Set up susfs
-        run: |
-          cd kernel_workspace
-           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
-           #git clone https://github.com/ShirkNeko/SukiSU_patch.git
+          repository: firelzrd/adios
+          path: adios
 
-           cd kernel_platform        
-           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
-           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-           #lz4k
-           #cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux
-           #cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
-           #cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
-           #cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
-           # Apply patches
-           cd ./common
+      - name: Clone kernel source (GKI base)
+        run: |
+          mkdir kernel && cd kernel
+          git clone --depth=1 https://github.com/HanKuCha/kernel_platform.git -b oneplus_13 common
 
-           sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
-           sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
+      - name: Set environment variables
+        run: |
+          echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "KERNEL_DIR=$GITHUB_WORKSPACE/kernel/common" >> $GITHUB_ENV
+          echo "OUT_DIR=$GITHUB_WORKSPACE/kernel/common/out" >> $GITHUB_ENV
 
-           patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
-           #cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
-           #patch -p1 -F 3 < syscall_hooks.patch
-           echo "完成"
-           
-      - name: Add SUSFS Configuration Settings
+      - name: Prepare kernel config
         run: |
-          cd kernel_workspace/kernel_platform
-          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
+          cd $KERNEL_DIR
+          make O=$OUT_DIR ARCH=arm64 gki_defconfig
 
-          # Add VFS configuration settings
-          echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_MANUAL_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
-          # Add SUSFS configuration settings
-          echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          grep -E "CONFIG_KSU_SUSFS" ./common/arch/arm64/configs/gki_defconfig
-          # 生成补丁影响文件列表
-          find ./common -type f -exec grep -l "susfs" {} + | sort | uniq
+      - name: Build adios.ko
+        run: |
+          cd $GITHUB_WORKSPACE/adios
+          make -C $KERNEL_DIR O=$OUT_DIR ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules
 
-          # 验证每个文件是否包含关键函数
-          check_files=(
-          fs/namespace.c
-          fs/namei.c
-          fs/exec.c
-          include/linux/sched.h
-          kernel/sys.c
-          fs/dcache.c
-          )
-
-          for file in "${check_files[@]}"; do
-          echo -e "\n\e[1;34m验证 $file:\e[0m"
-          if grep -q "susfs" "./common/$file"; then
-           echo -e "\e[1;32m✓ SUSFS 代码存在\e[0m"
-           grep -n --color "susfs" "./common/$file" | head -3
-          else
-          echo -e "\e[1;31m✗ 未找到 SUSFS 代码\e[0m"
-          fi
-          done
-          #echo "CONFIG_CRYPTO_LZ4HC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_CRYPTO_LZ4K=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
-      - name: Apply HMBird GKI patch
-        run: |
-          cd kernel_workspace/kernel_platform/common/drivers
-          cat << 'EOF' > hmbird_patch.c
-          #include <linux/init.h>
-          #include <linux/module.h>
-          #include <linux/of.h>
-          #include <linux/slab.h>
-          #include <linux/string.h>
-          static int __init hmbird_patch_init(void)
-          {
-              struct device_node *ver_np;
-              const char *type;
-              int ret;
-              ver_np = of_find_node_by_path("/soc/oplus,hmbird/version_type");
-              if (!ver_np) { pr_info("hmbird_patch: version_type node not found\n"); return 0; }
-              ret = of_property_read_string(ver_np, "type", &type);
-              if (ret) { pr_info("hmbird_patch: type property not found\n"); of_node_put(ver_np); return 0; }
-              if (strcmp(type, "HMBIRD_OGKI")) { of_node_put(ver_np); return 0; }
-              struct property *prop = of_find_property(ver_np, "type", NULL);
-              if (prop) {
-                   struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
-                   if (!new_prop) { pr_info("hmbird_patch: kmalloc failed\n"); of_node_put(ver_np); return 0; }
-                   memcpy(new_prop, prop, sizeof(*prop));
-                   new_prop->value = kmalloc(strlen("HMBIRD_GKI")+1, GFP_KERNEL);
-                   if (!new_prop->value) { pr_info("value alloc failed\n"); kfree(new_prop); of_node_put(ver_np); return 0; }
-                   strcpy(new_prop->value, "HMBIRD_GKI"); new_prop->length=strlen("HMBIRD_GKI")+1;
-                   of_remove_property(ver_np, prop); of_add_property(ver_np,new_prop); pr_info("patched\n");
-              }
-              of_node_put(ver_np); return 0;
-          }
-          early_initcall(hmbird_patch_init);
-          MODULE_LICENSE("GPL"); MODULE_AUTHOR("reigadegr"); MODULE_DESCRIPTION("HMBIRD patch");
-          EOF
-          if ! grep -q "hmbird_patch.o" Makefile; then echo "obj-y += hmbird_patch.o" >> Makefile; fi
-          cd ../../../
-          git add -A && git commit -m "Add HMBird GKI patch" || true
-      - name: Add make name
-        run: |
-          cd kernel_workspace/kernel_platform
-          sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
-          sudo sed -i 's/-4k/${{ github.event.inputs.KERNEL_SUFFIX }}/g' ./common/arch/arm64/configs/gki_defconfig
-      - name: Add sched_ext
-        if: ${{ inputs.enable_feature_z }}
-        run: |
-          cd kernel_workspace/kernel_platform
-          git clone https://github.com/HanKuCha/sched_ext.git
-          cp -r ./sched_ext/* ./common/kernel/sched
-          rm -rf ./sched_ext/.git
-      - name: Build Kernel
-        run: |
-          export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
-          export PATH="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
-          export PATH="/usr/lib/ccache:$PATH"
-          cd kernel_workspace/kernel_platform/common
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all
-      - name: Make AnyKernel3
-        run: |
-          git clone https://github.com/Kernel-SU/AnyKernel3.git --depth=1
-          rm -rf ./AnyKernel3/.git ./AnyKernel3/push.sh
-          cp kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image ./AnyKernel3/
-      - name: Upload AnyKernel3
+      - name: Upload adios.ko
         uses: actions/upload-artifact@v4
         with:
-          name: KernelSU_main_${{ env.KSUVER }}_oneplus_13
-          path: ./AnyKernel3/*
+          name: adios-ko
+          path: |
+            adios/adios.ko
