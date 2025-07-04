@@ -31,10 +31,12 @@ jobs:
           repo init -u $MANIFEST_URL -b refs/heads/$MANIFEST_BRANCH \
             -m $MANIFEST_XML --depth=1
           repo sync -c -j$(nproc) --no-tags
-          # 准备 modules_prepare
-          cd kernel_platform
-          make O=$OUT_DIR ARCH=$ARCH CROSS_COMPILE=$CROSS_COMPILE gki_defconfig
-          make O=$OUT_DIR ARCH=$ARCH CROSS_COMPILE=$CROSS_COMPILE modules_prepare
+
+          cd kernel_platform/common
+          make O=$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common/out \
+               ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
+          make O=$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common/out \
+               ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_prepare
 
       - name: 克隆 adios 源码
         run: |
