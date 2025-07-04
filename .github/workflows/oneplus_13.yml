@@ -6,65 +6,51 @@ on:
 jobs:
   build-adios:
     runs-on: ubuntu-latest
-    env:
-      # 内核 manifest 仓库地址和分支
-      MANIFEST_URL: https://github.com/HanKuCha/kernel_manifest.git
-      MANIFEST_BRANCH: oneplus/sm8750
-      MANIFEST_XML: JiuGeFaCai_oneplus_13_v.xml
-      # 模块编译目录
-      OUT_DIR: out
-      # 交叉编译器前缀
-      CROSS_COMPILE: aarch64-linux-gnu-
-      ARCH: arm64
 
     steps:
-      - name: 安装依赖
+      - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y git curl ccache \
-            build-essential bc bison flex libssl-dev libelf-dev \
-            python3 repo
+          sudo apt install -y git build-essential bc bison flex libssl-dev \
+            libelf-dev ccache python3 curl wget lld clang llvm gcc-aarch64-linux-gnu
 
-      - name: 同步内核源码（只拿 headers）
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+        with:
+          path: local_repo
+
+      - name: Checkout adios module
+        uses: actions/checkout@v4
+        with:
+          repository: firelzrd/adios
+          path: adios
+
+      - name: Clone kernel source (GKI base)
         run: |
-          mkdir kernel_workspace && cd kernel_workspace
-          repo init -u $MANIFEST_URL -b refs/heads/$MANIFEST_BRANCH \
-            -m $MANIFEST_XML --depth=1
-          repo sync -c -j$(nproc) --no-tags
+          mkdir -p kernel && cd kernel
+          git clone --depth=1 https://github.com/HanKuCha/kernel_platform.git -b oneplus_13 common
 
-          cd kernel_platform/common
-          make O=$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common/out \
-               ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gki_defconfig
-          make O=$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common/out \
-               ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_prepare
-
-      - name: 克隆 adios 源码
+      - name: Set environment variables
         run: |
-          # 将 adios 代码放到 modules/adios
-          mkdir -p kernel_workspace/kernel_platform/modules
-          git clone https://github.com/firelzrd/adios.git \
-            kernel_workspace/kernel_platform/modules/adios
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "KERNEL_DIR=$GITHUB_WORKSPACE/kernel/common" >> $GITHUB_ENV
+          echo "OUT_DIR=$GITHUB_WORKSPACE/kernel/common/out" >> $GITHUB_ENV
+          echo "CLANG_PATH=/usr/lib/llvm-17/bin" >> $GITHUB_ENV
+          echo "PATH=$CLANG_PATH:$PATH" >> $GITHUB_ENV
 
-      - name: （可选）添加 Makefile
+      - name: Prepare kernel config
         run: |
-          # 如果 adios repo 中没有顶层 Makefile，则创建一个
-          cat > kernel_workspace/kernel_platform/modules/adios/Makefile << 'EOF'
-          obj-m += adios.o
-          EOF
+          cd $KERNEL_DIR
+          make O=$OUT_DIR LLVM=1 ARCH=arm64 CC=clang gki_defconfig
 
-      - name: 编译 adios.ko
+      - name: Build adios.ko
         run: |
-          cd kernel_workspace/kernel_platform
-          make -C $OUT_DIR \
-               M=$PWD/modules/adios \
-               ARCH=$ARCH \
-               CROSS_COMPILE=$CROSS_COMPILE \
-               modules
+          cd $GITHUB_WORKSPACE/adios
+          make -C $KERNEL_DIR O=$OUT_DIR LLVM=1 ARCH=arm64 CC=clang M=$(pwd) modules
 
-      - name: 收集并上传 adios.ko
-         run:|
-          cp kernel_workspace/kernel_platform/modules/adios/adios.ko .
+      - name: Upload adios.ko
         uses: actions/upload-artifact@v4
         with:
           name: adios-ko
-          path: adios.ko
+          path: |
+            adios/adios.ko
