@@ -129,15 +129,7 @@ jobs:
           cp ../adios/patches/0001-linux6.16-rc1-ADIOS-2.2.0.patch .
           patch -p1 -F 3 < 0001-linux6.16-rc1-ADIOS-2.2.0.patch || true
 
-          # 3. 拷贝调度器源码
-          mkdir -p block/iosched/adios
-          cp ../adios/block/* block/iosched/adios/
-
-          # 4. 向主 Kconfig 引用子目录
-          if ! grep -q 'source "block/iosched/adios/Kconfig"' block/Kconfig; then
-            echo 'source "block/iosched/adios/Kconfig"' >> block/Kconfig
-          fi
-
+          
           # 5. 启用 defconfig 配置
           echo "CONFIG_MQ_IOSCHED_ADIOS=y" >> arch/arm64/configs/gki_defconfig
 
