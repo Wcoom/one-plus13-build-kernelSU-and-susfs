@@ -80,11 +80,6 @@ jobs:
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-       
-      - name: Clone ADIOS repository
-        run: |
-         cd kernel_workspace
-         git clone https://github.com/firelzrd/adios.git adios
          
       - name: Set up SukiSU
         run: |
@@ -95,31 +90,7 @@ jobs:
          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
          export KSU_VERSION=$KSU_VERSION
          sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
-
-      - name: Integrate ADIOS into kernel
-        run: |
-         cd kernel_workspace/kernel_platform/common
-         mkdir -p drivers/block/adios
-         cp -r ../../adios/block/adios/* drivers/block/adios/
-         cp ../../adios/block/Kconfig.block-adios drivers/block/Kconfig.adios
-         cp ../../adios/block/Makefile.block-adios drivers/block/Makefile.adios
-         cat drivers/block/Kconfig.adios >> drivers/block/Kconfig
-         cat drivers/block/Makefile.adios >> drivers/block/Makefile
-
-      - name: Update Makefile and Kconfig for ADIOS
-        run: |
-         cd kernel_workspace/kernel_platform/common
-         sed -i '/obj-\$(CONFIG_ADIOS_IO)/d' drivers/block/Makefile
-         echo 'obj-\$(CONFIG_ADIOS_IO) += adios/' >> drivers/block/Makefile
-         if ! grep -q "config ADIOS_IO" drivers/block/Kconfig; then
-          cat <<EOF >> drivers/block/Kconfig
-          config ADIOS_IO
-              tristate "ADIOS I/O Scheduler"
-              depends on BLK_MQ
-              help
-                Adaptive Deadline I/O Scheduler for modern block devices.
-          EOF
-         fi
+      
         
       - name: Set up susfs
         run: |
@@ -277,8 +248,7 @@ jobs:
           #echo "CONFIG_TCP_CONG_WESTWOOD=n" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_TCP_CONG_HTCP=n" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_ADIOS_IO=y" >> arch/arm64/configs/gki_defconfig
-          echo "DEFAULT_IOSCHED=adios" >> arch/arm64/configs/gki_defconfig
+          
           #Remove check_defconfig
           sudo sed -i 's/check_defconfig//' ./common/build.config.gki
           cd common
