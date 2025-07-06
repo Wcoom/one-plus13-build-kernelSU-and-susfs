@@ -108,10 +108,10 @@ jobs:
          done
 
          git commit -m "Squashed cherry-pick of adios commits from brokestar233/v5 (prefer remote)"
-      
+    
       - name: Set up SukiSU
         run: |
-         cd kernel_workspacekspace/kernel_platform
+         cd kernel_workspace/kernel_platform
          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/susfs-main/kernel/setup.sh" | bash -s susfs-main
          cd ./KernelSU
          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
