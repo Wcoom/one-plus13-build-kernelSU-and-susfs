@@ -86,7 +86,7 @@ jobs:
          cd kernel_workspace/kernel_platform/common
          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
          git fetch brokestar233 v5
-         git merge -s recursive -X ours brokestar233/v5 -m "Merge brokestar233/v5 (prefer local changes)"
+         git merge -s recursive -X ours brokestar233/v5 --allow-unrelated-histories -m "Merge brokestar233/v5 (prefer local changes)"
          
       - name: Set up SukiSU
         run: |
