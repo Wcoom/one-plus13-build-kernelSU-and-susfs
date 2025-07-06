@@ -77,8 +77,28 @@ jobs:
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
       
-      
-        
+      - name: Forcefully merge all changes from brokestar233/v5 (keep remote regardless of conflict)
+        run: |
+         cd kernel_workspace/kernel_platform/common
+         git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
+         git fetch brokestar233 v5
+         echo "⚙️ 获取远程 brokestar233/v5 文件列表..."
+         REMOTE_TREE=$(git rev-parse brokestar233/v5^{tree})
+         echo "📦 检出远程版本，强制覆盖所有文件（无论冲突或来源）"
+         git read-tree --reset -u $REMOTE_TREE
+         echo "✅ 创建一次提交以记录这次更新"
+         git commit -m "Forcefully synced with brokestar233/v5 (keep all remote changes)"
+    
+      - name: Set up SukiSU
+        run: |
+         cd kernel_workspace/kernel_platform
+         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/susfs-main/kernel/setup.sh" | bash -s susfs-main
+         cd ./KernelSU
+         KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
+         echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
+         export KSU_VERSION=$KSU_VERSION
+         sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+
       - name: Set up susfs
         run: |
            cd kernel_workspace
@@ -101,27 +121,6 @@ jobs:
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
-      - name: Forcefully merge all changes from brokestar233/v5 (keep remote regardless of conflict)
-        run: |
-         cd kernel_workspace/kernel_platform/common
-         git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
-         git fetch brokestar233 v5
-         echo "⚙️ 获取远程 brokestar233/v5 文件列表..."
-         REMOTE_TREE=$(git rev-parse brokestar233/v5^{tree})
-         echo "📦 检出远程版本，强制覆盖所有文件（无论冲突或来源）"
-         git read-tree --reset -u $REMOTE_TREE
-         echo "✅ 创建一次提交以记录这次更新"
-         git commit -m "Forcefully synced with brokestar233/v5 (keep all remote changes)"
-    
-      - name: Set up SukiSU
-        run: |
-         cd kernel_workspace/kernel_platform
-         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/susfs-main/kernel/setup.sh" | bash -s susfs-main
-         cd ./KernelSU
-         KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
-         echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-         export KSU_VERSION=$KSU_VERSION
-         sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
       
       - name: Apply HMBird GKI patch
         run: |
