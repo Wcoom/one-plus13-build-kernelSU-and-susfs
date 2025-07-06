@@ -84,6 +84,36 @@ jobs:
       
       
       - name: Squashed cherry-pick adios-related commits from brokestar233/v5 (prefer remote)
+      - name: Squashed cherry-pick only 'adios' commits from brokestar233/v5 (prefer remote)
+        run: |
+         cd kernel_workspace/kernel_platform/common
+         git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
+         git fetch brokestar233 v5
+
+          # 获取所有包含 'adios' 关键词的 commit hash
+         COMMITS=$(git log brokestar233/v5 --grep=adios --no-merges --pretty=format:"%H")
+
+         if [ -z "$COMMITS" ]; then
+         echo "❌ 未找到含 'adios' 的提交，跳过 cherry-pick"
+         exit 0
+         fi
+
+         echo "✅ 找到以下 adios commits："
+         echo "$COMMITS"
+
+         for commit in $COMMITS; do
+         echo "→ cherry-pick $commit"
+         git cherry-pick --no-commit $commit || {
+         echo "⚠️ 冲突于 $commit，自动保留远程版本"
+         git checkout --theirs .     # 使用远程版本解决冲突
+         git add .                   # 标记已解决
+         }
+         done
+
+         git commit -m "Squashed cherry-pick of adios commits from brokestar233/v5 (prefer remote)"
+      - name: Set up SukiSU
+        run: |
+         cd kernel_wor- name: Squashed cherry-pick adios-related commits from brokestar233/v5 (prefer remote)
         run: |
           cd kernel_workspace/kernel_platform/common
           git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
@@ -112,7 +142,7 @@ jobs:
          
       - name: Set up SukiSU
         run: |
-         cd kernel_workspace/kernel_platform
+         cd kernel_workspacekspace/kernel_platform
          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/susfs-main/kernel/setup.sh" | bash -s susfs-main
          cd ./KernelSU
          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
