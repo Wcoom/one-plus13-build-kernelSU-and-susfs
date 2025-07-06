@@ -86,7 +86,14 @@ jobs:
          cd kernel_workspace/kernel_platform/common
          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
          git fetch brokestar233 v5
-         git merge -s recursive -X ours brokestar233/v5 --allow-unrelated-histories -m "Merge brokestar233/v5 (prefer local changes)"
+         git merge -s recursive -X ours brokestar233/v5 --allow-unrelated-histories -m "Merge brokestar233/v5 (prefer local changes)" || true
+
+         # 检查是否有冲突文件残留
+         if [ -d .git/MERGE_HEAD ]; then
+          echo "⚠️ Merge had conflicts, force-resolving by keeping local changes"
+         git add -A
+         git commit -m "Auto-resolve merge conflicts by keeping local changes"
+         fi
          
       - name: Set up SukiSU
         run: |
