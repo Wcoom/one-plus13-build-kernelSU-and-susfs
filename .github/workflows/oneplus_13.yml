@@ -82,16 +82,21 @@ jobs:
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
       
-      - name: Squashed cherry-pick from brokestar233/v5 (prefer remote changes)
+      
+      - name: Squashed cherry-pick adios-related commits from brokestar233/v5 (prefer remote)
         run: |
           cd kernel_workspace/kernel_platform/common
           git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
           git fetch brokestar233 v5
 
-          # 收集所有非合并提交
-          COMMITS=$(git log --no-merges --pretty=format:"%H" brokestar233/v5)
+          # 获取含有 'adios' 描述的提交 hash 列表
+          COMMITS=$(git log brokestar233/v5 --grep=adios --no-merges --pretty=format:"%H")
 
-          # 逐个 cherry-pick，冲突时保留“远程”版本
+          if [ -z "$COMMITS" ]; then
+            echo "❌ No adios-related commits found in brokestar233/v5"
+            exit 0
+          fi
+
           for commit in $COMMITS; do
             echo "→ cherry-pick $commit"
             git cherry-pick --no-commit $commit || {
@@ -101,6 +106,7 @@ jobs:
             }
           done
 
+          git commit -m "Squashed adios-related commits from brokestar233/v5 (prefer remote)"
           # 用一个 commit 将所有变更合并
           git commit -m "Squashed cherry-pick from brokestar233/v5 (prefer remote changes)"
          
