@@ -52,13 +52,11 @@ jobs:
         run: |
          git config --global user.name "Futaba"
          git config --global user.email "3199167602@qq.com"
-
       - name: Install dependencies
         run: |
           sudo apt update && sudo apt upgrade -y
           sudo apt install -y python3 git curl
           sudo apt install -y python3 git curl ccache
-
       - name: Restore ccache
         uses: actions/cache@v3
         with:
@@ -66,13 +64,11 @@ jobs:
           key: ccache-${{ runner.os }}-${{ github.ref }}
           restore-keys: |
             ccache-${{ runner.os }}-
-
       - name: Install repo tool
         run: |
          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
          chmod a+x ~/repo
          sudo mv ~/repo /usr/local/bin/repo
-
       - name: Initialize repo and sync
         run: |
          mkdir kernel_workspace && cd kernel_workspace
@@ -80,7 +76,6 @@ jobs:
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-
       - name: Set up SukiSU
         run: |
          cd kernel_workspace/kernel_platform
@@ -97,7 +92,6 @@ jobs:
            cd kernel_workspace
            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
            git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
-
            cd kernel_platform        
            cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
            cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
@@ -109,66 +103,24 @@ jobs:
            cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
            # Apply patches
            cd ./common
-
            sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
            sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
-
            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
-
       - name: Forcefully merge all changes from brokestar233/v5 (keep remote regardless of conflict)
         run: |
          cd kernel_workspace/kernel_platform/common
          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
          git fetch brokestar233 v5
-
          echo "⚙️ 获取远程 brokestar233/v5 文件列表..."
          REMOTE_TREE=$(git rev-parse brokestar233/v5^{tree})
-
          echo "📦 检出远程版本，强制覆盖所有文件（无论冲突或来源）"
          git read-tree --reset -u $REMOTE_TREE
-
          echo "✅ 创建一次提交以记录这次更新"
          git commit -m "Forcefully synced with brokestar233/v5 (keep all remote changes)"
-
-         - name: Set up SukiSU
-           run: |
-            cd kernel_workspace/kernel_platform
-            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/susfs-main/kernel/setup.sh" | bash -s susfs-main
-            cd ./KernelSU
-            KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
-            echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-            export KSU_VERSION=$KSU_VERSION
-            sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
-      
-        
-      - name: Set up susfs
-        run: |
-           cd kernel_workspace
-           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
-           git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
-
-           cd kernel_platform        
-           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
-           cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-           cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-           #lz4k
-           cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux
-           cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
-           cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
-           cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
-           # Apply patches
-           cd ./common
-
-           sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
-           sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
-
-           patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
-           cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
-           patch -p1 -F 3 < syscall_hooks.patch
-           echo "完成" 
+    
       
       - name: Apply HMBird GKI patch
         run: |
@@ -179,31 +131,26 @@ jobs:
          #include <linux/of.h>
          #include <linux/slab.h>
          #include <linux/string.h>
-
          static int __init hmbird_patch_init(void)
          {
              struct device_node *ver_np;
              const char *type;
              int ret;
-
              ver_np = of_find_node_by_path("/soc/oplus,hmbird/version_type");
              if (!ver_np) {
                   pr_info("hmbird_patch: version_type node not found\n");
                   return 0;
              }
-
              ret = of_property_read_string(ver_np, "type", &type);
              if (ret) {
                   pr_info("hmbird_patch: type property not found\n");
                   of_node_put(ver_np);
                   return 0;
              }
-
              if (strcmp(type, "HMBIRD_OGKI")) {
                   of_node_put(ver_np);
                   return 0;
              }
-
              struct property *prop = of_find_property(ver_np, "type", NULL);
              if (prop) {
                   struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
@@ -222,7 +169,6 @@ jobs:
             }
             strcpy(new_prop->value, "HMBIRD_GKI");
             new_prop->length = strlen("HMBIRD_GKI") + 1;
-
             if (of_remove_property(ver_np, prop) != 0) {
                  pr_info("hmbird_patch: of_remove_property failed\n");
                  return 0;
@@ -250,7 +196,6 @@ jobs:
          cd ../../../
          git add -A
          git commit -m "Add HMBird GKI patch" || true
-
  
       - name: Apply lz4kd Patches
         if: ${{inputs.enable_feature_y }}
@@ -263,7 +208,6 @@ jobs:
         run: |
           cd kernel_workspace/kernel_platform
           echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-
           # Add VFS configuration settings
           echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_MANUAL_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -290,7 +234,6 @@ jobs:
           echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
-
           # Add BBR
           #echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -323,7 +266,6 @@ jobs:
          cd kernel_workspace/kernel_platform
          sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
          sudo sed -i 's/-4k/${{ github.event.inputs.KERNEL_SUFFIX }}/g' ./common/arch/arm64/configs/gki_defconfig
-
       - name: Add sched_ext
         if: ${{inputs.enable_feature_z }}
         run: |
@@ -332,7 +274,6 @@ jobs:
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
          cd common/kernel/sched
-
       - name: Build Kernel
         run: |
           export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
@@ -357,7 +298,6 @@ jobs:
          rm -rf ./AnyKernel3/.git
          rm -rf ./AnyKernel3/push.sh
          cp kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image ./AnyKernel3/
-
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
