@@ -117,25 +117,6 @@ jobs:
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
-
-      - name: Apply ADIOS 2.2.0 Scheduler Patch (linux 6.16-rc1)
-        run: |
-          cd kernel_workspace/kernel_platform/common
-
-          # 1. 克隆 ADIOS 仓库
-          git clone --depth=1 https://github.com/firelzrd/adios.git ../adios
-
-          # 2. 应用 2.2.0 patch (适用于 6.16-rc1，也兼容 6.6)
-          cp ../adios/patches/0001-linux6.16-rc1-ADIOS-2.2.0.patch .
-          patch -p1 -F 3 < 0001-linux6.16-rc1-ADIOS-2.2.0.patch || true
-
-          
-          # 5. 启用 defconfig 配置
-          echo "CONFIG_MQ_IOSCHED_ADIOS=y" >> arch/arm64/configs/gki_defconfig
-
-          # 6. 提交更改
-          git add -A
-          git commit -m "Apply ADIOS 2.2.0 scheduler patch (linux 6.16-rc1)" || true
       
       - name: Apply HMBird GKI patch
         run: |
