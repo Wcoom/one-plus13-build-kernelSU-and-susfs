@@ -80,6 +80,14 @@ jobs:
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+
+      # Add custom commit from brokestar233 before compilation
+      - name: Apply upstream custom commit
+        run: |
+          cd kernel_workspace/kernel_platform/common
+          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git
+          git fetch brokestar233
+          git cherry-pick 770c7d8b331f2be9e5993da4d97e7ab90c27fb34 || true
          
       - name: Set up SukiSU
         run: |
