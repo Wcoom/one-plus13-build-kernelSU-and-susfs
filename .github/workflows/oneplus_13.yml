@@ -81,24 +81,12 @@ jobs:
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
-      # Add custom commit from brokestar233 before compilation
-      - name: Cherry-pick commits from brokestar233/v3 (excluding unwanted commit)
+      - name: Forcefully reset to brokestar233/v3
         run: |
-          cd kernel_workspace/kernel_platform/common
-          # 添加远程并 fetch v3 分支
-          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
-          git fetch brokestar233 v3
-
-          # 列出 v3 分支中所有非合并提交的哈希，并排除掉不需要的那次提交
-          git log --no-merges --pretty=format:"%H" brokestar233/v3 \
-            | grep -v e8d337f3afe9ed4b9740f965359ec67215505540 \
-            > ../v3_commit_list.txt
-
-          # 依次 cherry-pick
-          while read commit; do
-            echo "Cherry-picking $commit"
-            git cherry-pick $commit || echo "⚠️ Skip or conflict at $commit"
-          done < ../v3_commit_list.txt
+         cd kernel_workspace/kernel_platform/common
+         git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
+         git fetch brokestar233 v3
+         git reset --hard brokestar233/v3
          
       - name: Set up SukiSU
         run: |
