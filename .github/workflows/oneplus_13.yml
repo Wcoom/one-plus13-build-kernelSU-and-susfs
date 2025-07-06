@@ -109,17 +109,31 @@ jobs:
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
-      - name: Forcefully merge all changes from brokestar233/v5 (keep remote regardless of conflict)
+      - name: Merge brokestar233/v5 (prefer local on conflict, prefer remote if unrelated)
         run: |
          cd kernel_workspace/kernel_platform/common
          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
          git fetch brokestar233 v5
-         echo "⚙️ 获取远程 brokestar233/v5 文件列表..."
-         REMOTE_TREE=$(git rev-parse brokestar233/v5^{tree})
-         echo "📦 检出远程版本，强制覆盖所有文件（无论冲突或来源）"
-         git read-tree --reset -u $REMOTE_TREE
-         echo "✅ 创建一次提交以记录这次更新"
-         git commit -m "Forcefully synced with brokestar233/v5 (keep all remote changes)"
+
+         echo "🔍 检查是否已经是 brokestar233/v5 的祖先..."
+         if git merge-base --is-ancestor brokestar233/v5 HEAD; then
+         echo "✅ 已包含 brokestar233/v5，跳过合并"
+         exit 0
+         fi
+
+         echo "⚙️ 尝试使用三方合并 brokestar233/v5，冲突优先保留本地"
+         git merge --allow-unrelated-histories -X ours brokestar233/v5 -m "Merged brokestar233/v5 (keep local changes on conflict, take remote on unrelated files)" || {
+
+         echo "⚠️ 有冲突，正在处理..."
+         git diff --name-only --diff-filter=U | while read -r file; do
+         echo "→ 冲突文件: $file，保留本地版本"
+         git checkout --ours "$file"
+         git add "$file"
+         done
+
+         echo "✅ 解决冲突，提交合并结果"
+         git commit -m "Resolved merge conflicts by keeping local, merged with brokestar233/v5"
+         }
     
       
       - name: Apply HMBird GKI patch
