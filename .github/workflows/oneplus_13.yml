@@ -81,18 +81,20 @@ jobs:
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
 
-      - name: Merge brokestar233/v5 and keep local changes on conflict
+      - name: Apply brokestar233/v5 diff as a single commit
         run: |
          cd kernel_workspace/kernel_platform/common
          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git || true
          git fetch brokestar233 v5
-         git merge -s recursive -X ours brokestar233/v5 --allow-unrelated-histories -m "Merge brokestar233/v5 (prefer local changes)" || true
+         git diff HEAD brokestar233/v5 > ../brokestar233_v5.patch
 
-         # 检查是否有冲突文件残留
-         if [ -d .git/MERGE_HEAD ]; then
-          echo "⚠️ Merge had conflicts, force-resolving by keeping local changes"
+         # 尝试应用 patch，失败则显示冲突
+         if git apply ../brokestar233_v5.patch; then
          git add -A
-         git commit -m "Auto-resolve merge conflicts by keeping local changes"
+         git commit -m "Apply brokestar233/v5 diff as a single commit"
+         else
+         echo "❌ Patch failed to apply cleanly. Please resolve conflicts manually."
+         exit 1
          fi
          
       - name: Set up SukiSU
