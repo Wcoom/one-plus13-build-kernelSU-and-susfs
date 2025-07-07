@@ -109,6 +109,7 @@ jobs:
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
+      
       - name: Merge brokestar233/v5 (prefer local on conflict, prefer remote if unrelated)
         run: |
          cd kernel_workspace/kernel_platform/common
@@ -124,14 +125,17 @@ jobs:
          echo "⚙️ 尝试使用三方合并 brokestar233/v5，冲突优先保留本地"
          git merge --allow-unrelated-histories -X ours brokestar233/v5 -m "Merged brokestar233/v5 (keep local changes on conflict, take remote on unrelated files)" || {
 
-         echo "⚠️ 有冲突，正在处理..."
+         echo "⚠️ 有冲突，自动保留本地版本中冲突的内容"
          git diff --name-only --diff-filter=U | while read -r file; do
-         echo "→ 冲突文件: $file，保留本地版本"
+         echo "→ 解决冲突: $file，保留本地版本"
          git checkout --ours "$file"
          git add "$file"
          done
 
-         echo "✅ 解决冲突，提交合并结果"
+         echo "✅ 添加所有更改（包括非冲突文件）"
+         git add -A || true
+
+         echo "✅ 提交合并结果"
          git commit -m "Resolved merge conflicts by keeping local, merged with brokestar233/v5"
          }
     
