@@ -86,7 +86,8 @@ jobs:
           git clone --depth=1 --branch v5 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git /tmp/kernel_brokestar_v5
           rm -rf kernel_workspace/kernel_platform/common/block
           cp -r /tmp/kernel_brokestar_v5/block kernel_workspace/kernel_platform/common/block
-         
+           # 替换 include/linux 目录下的头文件以确保兼容
+          cp -r /tmp/kernel_brokestar_v5/include/linux kernel_workspace/kernel_platform/common/include/
       - name: Set up SukiSU
         run: |
          cd kernel_workspace/kernel_platform
