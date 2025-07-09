@@ -80,6 +80,16 @@ jobs:
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+
+      - name: Apply brokestar233 commits
+        run: |
+          cd kernel_workspace/kernel_platform/common
+          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git
+          git fetch brokestar233
+
+          # Cherry-pick with "theirs" strategy to resolve conflicts in favor of brokestar233
+          git cherry-pick -X theirs 770c7d8b331f2be9e5993da4d97e7ab90c27fb34 || git cherry-pick --skip
+          git cherry-pick -X theirs 5e6c95fa5987fbc88b13829fa51517aa538d7028 || git cherry-pick --skip
          
       - name: Set up SukiSU
         run: |
