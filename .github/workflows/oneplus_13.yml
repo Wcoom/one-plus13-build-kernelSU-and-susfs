@@ -73,21 +73,22 @@ jobs:
          chmod a+x ~/repo
          sudo mv ~/repo /usr/local/bin/repo
 
-      - name: Initialize repo and sync
-        run: |
-         mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m JiuGeFaCai_oneplus_13_v.xml --depth=1
-         repo --trace sync -c -j$(nproc --all) --no-tags
-         rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+      - name: Initialize repo and sync  
+        run: |  
+         mkdir kernel_workspace && cd kernel_workspace  
+         repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m JiuGeFaCai_oneplus_13_v.xml --depth=1  
+         repo --trace sync -c -j$(nproc --all) --no-tags  
 
-      - name: Clone brokestar233 kernel v5 branch
-        run: |
-          git clone --depth=1 --branch v5 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git /tmp/kernel_brokestar_v5
-          rm -rf kernel_workspace/kernel_platform/common/block
-          cp -r /tmp/kernel_brokestar_v5/block kernel_workspace/kernel_platform/common/block
-           # 替换 include/linux 目录下的头文件以确保兼容
-          cp -r /tmp/kernel_brokestar_v5/include/linux kernel_workspace/kernel_platform/common/include/
+         # 清除官方 common 目录
+         rm -rf kernel_platform/common
+
+         # 拉取 brokestar233 的 common 源码
+         git clone --depth=1 --branch v5 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git kernel_platform/common
+
+         # 清理 abi exports 文件，防止报错
+         rm -f kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
+         rm -f kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
+         
       - name: Set up SukiSU
         run: |
          cd kernel_workspace/kernel_platform
