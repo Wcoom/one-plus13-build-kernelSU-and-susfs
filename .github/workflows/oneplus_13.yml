@@ -254,13 +254,7 @@ jobs:
           echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MQ_IOSCHED_DEADLINE=y"        >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MQ_IOSCHED_KYBER=y"           >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_MQ_IOSCHED_ADIOS=y"           >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y"   >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IOSCHED_BFQ=y"                >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BFQ_GROUP_IOSCHED=y"          >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_LOCALVERSION_AUTO=n"          >> ./common/arch/arm64/configs/gki_defconfig
           # Add BBR
           #echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
