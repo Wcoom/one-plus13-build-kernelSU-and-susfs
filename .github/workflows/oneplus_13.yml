@@ -89,18 +89,7 @@ jobs:
 
           # 定义提交列表
           COMMITS=(
-            770c7d8b331f2be9e5993da4d97e7ab90c27fb34
-            5a942579ccb147cf8a94e6607ed4c0db84695909
-            b5d52754da8ba81871758469a15a2083110d4cf0
-            e10276bdffb96e4c6e17d380287bbbe41179830c
-            3acf0dc30ec04adf6ddfe91ce6a5f64b07fd9c67
-            43aa46d6e74244a2a8340a7fc692f56a0cddb4d8
-            34a697778cf5a2d7d7b33f4ff8846ca318ccb9bd
-            fc7ee612981f106d2968f61a3e01327efaecc981
-            81a3efd1e043d1a0440719b6ce928d0dd87a9c53
-            ff5b81112f9893510113de20dabf33ea060cfca2
-            62a21ac43d838158195f9e48f3b07158053a5a41
-            5e6c95fa5987fbc88b13829fa51517aa538d7028
+            770c7d8b331f2be9e5993da4d97e7ab90c27fb34           
           )
 
           # 逐个 Cherry-pick，自动处理冲突或跳过失败
