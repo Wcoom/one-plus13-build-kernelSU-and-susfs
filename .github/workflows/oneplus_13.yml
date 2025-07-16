@@ -80,27 +80,11 @@ jobs:
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-
-      - name: Apply brokestar233 commits with conflict resolution
-        run: |
-          cd kernel_workspace/kernel_platform/common
-          git remote add brokestar233 https://github.com/brokestar233/android_kernel_common_oneplus_sm8750.git
-          git fetch brokestar233
-
-          # 定义提交列表
-          COMMITS=(
-            770c7d8b331f2be9e5993da4d97e7ab90c27fb34           
-          )
-
-          # 逐个 Cherry-pick，自动处理冲突或跳过失败
-          for commit in "${COMMITS[@]}"; do
-            git cherry-pick -X theirs "$commit" || git cherry-pick --skip
-          done
          
       - name: Set up SukiSU
         run: |
          cd kernel_workspace/kernel_platform
-         curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/susfs-main/kernel/setup.sh" | bash -s susfs-main
+         curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
          cd ./KernelSU
          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
@@ -112,17 +96,17 @@ jobs:
         run: |
            cd kernel_workspace
            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
-           git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
+           #git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
 
            cd kernel_platform        
            cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
            cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
            cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
            #lz4k
-           cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux
-           cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
-           cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
-           cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
+           #cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./common/include/linux
+           #cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
+           #cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
+           #cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
            # Apply patches
            cd ./common
 
@@ -130,8 +114,8 @@ jobs:
            sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 
            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
-           cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
-           patch -p1 -F 3 < syscall_hooks.patch
+           #cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
+           #patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
       
       - name: Apply HMBird GKI patch
@@ -216,12 +200,6 @@ jobs:
          git commit -m "Add HMBird GKI patch" || true
 
  
-      - name: Apply lz4kd Patches
-        if: ${{inputs.enable_feature_y }}
-        run: |
-          cd kernel_workspace/kernel_platform/common
-            cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
-            patch -p1 -F 3 < lz4kd.patch || true
            
       - name: Add SUSFS Configuration Settings
         run: |
@@ -254,15 +232,15 @@ jobs:
           echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MQ_IOSCHED_ADIOS=y"           >> ./common/arch/arm64/configs/gki_defconfig
+
           # Add BBR
-          #echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_TCP_CONG_BIC=n" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_TCP_CONG_CUBIC=n" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_TCP_CONG_WESTWOOD=n" >> ./common/arch/arm64/configs/gki_defconfig
-          #echo "CONFIG_TCP_CONG_HTCP=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_BIC=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_CUBIC=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_WESTWOOD=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_HTCP=n" >> ./common/arch/arm64/configs/gki_defconfig
           #echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
           
           #Remove check_defconfig
